@@ -327,8 +327,8 @@
                             <span class="title_resp_stmt"><xsl:apply-templates/> <xsl:text> </xsl:text> </span>
                         </xsl:when>
                         <xsl:otherwise>
+                            <xsl:text> : </xsl:text>
                             <xsl:apply-templates/>
-                            <xsl:text> </xsl:text>
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:for-each>

@@ -131,8 +131,8 @@
                                 <span class="title_resp_stmt"><xsl:apply-templates/> <xsl:text> </xsl:text> </span>
                             </xsl:when>
                             <xsl:otherwise>
+                                <xsl:text> : </xsl:text>
                                 <xsl:apply-templates/>
-                                <xsl:text> </xsl:text>
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:for-each>
@@ -155,21 +155,36 @@
 
         <!-- Author Statement -->
         <xsl:call-template name="showAuthor">
-            <xsl:with-param name="authorfield" select="marc:datafield[@tag=100 or @tag=110 or @tag=111]"/>
+            <xsl:with-param name="authorfield" select="marc:datafield[@tag=100]"/>
             <xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/>
             <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
             <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
         </xsl:call-template>
 
+        <xsl:call-template name="showAuthor">
+            <xsl:with-param name="authorfield" select="marc:datafield[@tag=110 or @tag=111]"/>
+            <xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/>
+            <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+            <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
+        </xsl:call-template>
+        <xsl:if test="marc:datafield[@tag=245]/marc:subfield[@code='c']">
+            <xsl:call-template name="showAuthor">
+                <xsl:with-param name="authorfield" select="marc:datafield[@tag=245]"/>
+                <xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/>
+                <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+                <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
+            </xsl:call-template>
+        </xsl:if>
         <!-- #13382 Suppress 700$i and 7xx/@ind2=2 -->
         <xsl:call-template name="showAuthor">
-            <xsl:with-param name="authorfield" select="marc:datafield[(@tag=700 or @tag=710 or @tag=711) and not(@ind2=2) and not(marc:subfield[@code='i'])]"/>
+            <xsl:with-param name="authorfield"
+                            select="marc:datafield[(@tag=700 or @tag=710 or @tag=711) and not(@ind2=2) and not(marc:subfield[@code='i'])]"/>
             <xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/>
             <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
             <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
         </xsl:call-template>
 
-    <xsl:if test="$DisplayIconsXSLT!='0' and $materialTypeCode!=''">
+        <xsl:if test="$DisplayIconsXSLT!='0' and $materialTypeCode!=''">
         <span class="results_summary type"><span class="label">Material type: </span>
     <xsl:element name="img"><xsl:attribute name="class">materialtype mt_icon_<xsl:value-of select="$materialTypeCode"/></xsl:attribute><xsl:attribute name="src">/intranet-tmpl/prog/img/famfamfam/<xsl:value-of select="$materialTypeCode"/>.png</xsl:attribute><xsl:attribute name="alt"></xsl:attribute></xsl:element>
         <xsl:text> </xsl:text>
@@ -1671,15 +1686,30 @@
 	<xsl:if test="count($authorfield)&gt;0">
         <h5 class="author">
         <xsl:for-each select="$authorfield">
-        <xsl:choose>
-          <xsl:when test="position()&gt;1"/>
-          <!-- #13383 -->
-          <xsl:when test="@tag&lt;700"><span class="byAuthor">By: </span></xsl:when>
-          <!--#13382 Changed Additional author to contributor -->
-          <xsl:otherwise>Contributor(s): </xsl:otherwise>
-        </xsl:choose>
+            <xsl:choose>
+                <xsl:when test="position()&gt;1"/>
+                <!-- #13383 -->
+                <xsl:when test="@tag=100"><span class="byAuthor">Author: </span></xsl:when>
+                <xsl:when test="@tag=110 or @tag=111"><span class="byAuthor">Editor: </span></xsl:when>
+                <xsl:when test="@tag=245"><span class="byAuthor">Corporate author: </span></xsl:when>
+                <!--#13382 Changed Additional author to contributor -->
+                <xsl:when test="@tag&gt;=700"><span class="byAuthor">Contributor(s): </span></xsl:when>
+            </xsl:choose>
         <a>
         <xsl:choose>
+            <xsl:when test="@tag=245">
+                <xsl:attribute name="href">
+                    <xsl:text>/cgi-bin/koha/opac-search.pl?q=kw,phr:"</xsl:text>
+                    <xsl:value-of select="str:encode-uri(marc:subfield[@code='c'], true())"/>
+                    <xsl:text>"</xsl:text>
+                    <xsl:if test="$AuthorLinkSortBy!='default'">
+                        <xsl:text>&amp;sort_by=</xsl:text>
+                        <xsl:value-of select="$AuthorLinkSortBy"/>
+                        <xsl:text>_</xsl:text>
+                        <xsl:value-of select="$AuthorLinkSortOrder" />
+                    </xsl:if>
+                </xsl:attribute>
+            </xsl:when>
             <xsl:when test="marc:subfield[@code=9] and $UseAuthoritiesForTracings='1'">
                 <xsl:attribute name="href">
                     <xsl:text>/cgi-bin/koha/catalogue/search.pl?q=an:</xsl:text>
@@ -1707,7 +1737,7 @@
             </xsl:otherwise>
         </xsl:choose>
         <xsl:choose>
-            <xsl:when test="@tag=100 or @tag=110 or @tag=111">
+            <xsl:when test="@tag=100 or @tag=110 or @tag=111 or @tag=245">
                 <!-- #13383 -->
                 <xsl:call-template name="chopPunctuation">
                     <xsl:with-param name="chopString">
@@ -1717,6 +1747,7 @@
                                     <!-- #13383 include subfield e for field 111, Display only name portion in 1XX -->
                                     <xsl:when test="@tag=111">aeq</xsl:when>
                                     <xsl:when test="@tag=110">ab</xsl:when>
+                                    <xsl:when test="@tag=245">c</xsl:when>
                                     <xsl:otherwise>abcjq</xsl:otherwise>
                                 </xsl:choose>
                             </xsl:with-param>

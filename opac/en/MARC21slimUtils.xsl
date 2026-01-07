@@ -277,6 +277,9 @@
                 <xsl:when test="$ind2='4'">
                     <span class="label">Copyright date: </span>
                 </xsl:when>
+                <xsl:otherwise>
+                    <span class="label">Publication details: </span>
+                </xsl:otherwise>
             </xsl:choose>
 
             <xsl:for-each select="marc:subfield">
